@@ -4,13 +4,14 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
+var cors = require('cors');
 
 var index = require('./routes/index');
 var api = require('./routes/api');
 var users = require('./routes/users');
 
 var app = express();
-
+/*
 // Add headers
 app.use(function (req, res, next) {
 
@@ -30,7 +31,8 @@ app.use(function (req, res, next) {
     // Pass to next layer of middleware
     next();
 });
-
+*/
+app.use(cors())
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
