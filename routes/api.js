@@ -5,6 +5,8 @@ var MongoClient = require('mongodb').MongoClient;
 var db_url = 'mongodb://admin:admin@ds155150.mlab.com:55150/lawa';
 var db;
 
+var url = require('url');
+
 router.get('/users', function(req, res, next) {
   MongoClient.connect(db_url, function (err, database) {
     if (err) throw err
@@ -24,7 +26,13 @@ router.get('/images', function(req, res, next) {
     db = database;
     console.log("Connected to database");
     
-    db.collection('images').find().sort({created_time: -1}).toArray(function (err, result) {
+    var limit = 3;
+    var query = url.parse(req.url,true).query;
+    var currentPage = query.page;
+    var skip = currentPage * limit;
+    console.log(skip, limit);
+    
+    db.collection('images').find().skip(skip).limit(limit).sort({created_time: -1}).toArray(function (err, result) {
       if (err) throw err
       res.send(JSON.stringify(result));
     })
