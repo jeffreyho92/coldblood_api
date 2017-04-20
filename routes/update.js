@@ -6,8 +6,6 @@ var request = require('request');
 var MongoClient = require('mongodb').MongoClient;
 var db;
 
-
-
 router.get('/update', function(req, res, next) {
 
   async.series({
