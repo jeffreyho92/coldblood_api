@@ -96,9 +96,9 @@ router.get('/update', function(req, res, next) {
       }
     );
     */
-  });
 
-  res.render('index', { title: 'update' });
+    res.render('index', { title: 'update' });
+  });
 });
 
 module.exports = router;
