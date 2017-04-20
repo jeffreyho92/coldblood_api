@@ -9,6 +9,7 @@ var cors = require('cors');
 var index = require('./routes/index');
 var api = require('./routes/api');
 var users = require('./routes/users');
+var update = require('./routes/update');
 
 var app = express();
 app.use(cors())
@@ -26,6 +27,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', index);
+app.use('/update', update);
 app.use('/api', api);
 app.use('/users', users);
 
