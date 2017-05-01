@@ -42,8 +42,14 @@ router.get('/', function(req, res, next) {
                   img_obj.created_time = item.created_time
                   img_obj.likes = item.likes.count
                   img_obj.caption = item.caption
-                  img_obj.comments = item.comments
                   img_obj.images = item.images
+                  
+                  if(item.comments){
+                    img_obj.comments = item.comments.data
+                  }else{
+                    img_obj.comments = []
+                  }
+                  
                   img_arr.push(img_obj)
                 }
               })
