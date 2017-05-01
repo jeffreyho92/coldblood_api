@@ -3,8 +3,9 @@ var router = express.Router();
 const async = require('async')
 var request = require('request');
 
+var config = require('../config.js');
 var MongoClient = require('mongodb').MongoClient;
-var db_url = 'mongodb://admin:admin@ds155150.mlab.com:55150/lawa';
+var db_url = config.mongodb_url;
 var db;
 
 var url = require('url');

@@ -3,14 +3,15 @@ var router = express.Router();
 const async = require('async')
 var request = require('request');
 
+var config = require('../config.js');
 var MongoClient = require('mongodb').MongoClient;
 var db;
 
-router.get('/update', function(req, res, next) {
+router.get('/', function(req, res, next) {
 
   async.series({
     connect_db: function(callback) {
-      MongoClient.connect('mongodb://admin:admin@ds155150.mlab.com:55150/lawa', function (err, database) {
+      MongoClient.connect(config.mongodb_url, function (err, database) {
         if (err) throw err
         db = database;
         console.log("Connected to database");
