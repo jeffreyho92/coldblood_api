@@ -70,6 +70,20 @@ router.get('/images', function(req, res, next) {
   })
 });
 
+router.get('/user/images/:username', function(req, res, next) {
+  MongoClient.connect(db_url, function (err, database) {
+    if (err) throw err
+    db = database;
+    console.log("Connected to database");
+    
+    db.collection('images').find({username: req.params.username}).toArray(function (err, result) {
+      if (err) throw err
+      res.send(JSON.stringify(result));
+    })
+  })
+});
+
+
 router.get('/images/:id', function(req, res, next) {
   MongoClient.connect(db_url, function (err, database) {
     if (err) throw err
@@ -82,7 +96,6 @@ router.get('/images/:id', function(req, res, next) {
     })
   })
 });
-
 /*
 router.get('/user/:username', function(req, res, next) {
   MongoClient.connect(db_url, function (err, database) {
