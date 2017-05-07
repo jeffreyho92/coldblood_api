@@ -8,10 +8,11 @@ var MongoClient = require('mongodb').MongoClient;
 var db;
 
 router.get('/', function(req, res, next) {
+  retrieve_images();
   res.render('index', { title: 'update' });
 });
 
-setInterval(retrieve_images, 3600*1000);  //1 hour
+//setInterval(retrieve_images, 3600*1000);  //1 hour
 
 function retrieve_images(){
   async.series({
