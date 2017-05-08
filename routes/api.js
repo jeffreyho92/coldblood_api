@@ -7,6 +7,7 @@ var config = require('../config.js');
 var MongoClient = require('mongodb').MongoClient;
 var db_url = config.mongodb_url;
 var db;
+var limit = 6;
 
 var url = require('url');
 
@@ -24,7 +25,6 @@ router.get('/users', function(req, res, next) {
 });
 
 router.get('/images', function(req, res, next) {
-    var limit = 6;
     var query = url.parse(req.url,true).query;
     var currentPage = query.page;
     var skip = currentPage * limit;
@@ -70,13 +70,23 @@ router.get('/images', function(req, res, next) {
   })
 });
 
-router.get('/user/images/:username', function(req, res, next) {
+router.get('/user/images', function(req, res, next) {
+    var query = url.parse(req.url,true).query;
+    var currentPage = query.page;
+    var skip = currentPage * limit;
+    console.log(skip, limit);
+    
+    var username = '';
+    if(query.username){
+        username = query.username;
+    }
+    
   MongoClient.connect(db_url, function (err, database) {
     if (err) throw err
     db = database;
     console.log("Connected to database");
     
-    db.collection('images').find({username: req.params.username}).toArray(function (err, result) {
+    db.collection('images').find({username: username}).skip(skip).limit(limit).sort({created_time: -1}).toArray(function (err, result) {
       if (err) throw err
       res.send(JSON.stringify(result));
     })
