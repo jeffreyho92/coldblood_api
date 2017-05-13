@@ -100,6 +100,7 @@ function retrieve_images(){
                   info_obj.biography = body.user.biography;
                   info_obj.followers = body.user.followed_by.count;
                   info_obj.following = body.user.follows.count;
+                  info_obj.media = body.user.media.count;
                   info_obj.profile_pic_url = body.user.profile_pic_url;
                   
                   var query = {
