@@ -157,8 +157,6 @@ async function retrieve_images() {
   return console.log('done retrieve_images')
 }
 
-retrieve_images()
-
 router.get('/', function(req, res, next) {
   retrieve_images();
   res.render('index', { title: 'update' });
