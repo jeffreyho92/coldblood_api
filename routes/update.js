@@ -54,8 +54,14 @@ async function loop_media (nodes, username) {
       img_obj.caption = item.caption
 
       var img_src = {
+        thumbnail: {
+          url: item.thumbnail_resources[0].src
+        },
+        low_resolution: {
+          url: item.thumbnail_resources[2].src
+        },
         standard_resolution: {
-          url: item.thumbnail_resources[3].src
+          url: item.thumbnail_resources[4].src
         }
       }
 
