@@ -2,10 +2,145 @@ var express = require('express');
 var router = express.Router();
 const async = require('async')
 var request = require('request');
+var rp = require('request-promise');
 
 var config = require('../config.js');
 var MongoClient = require('mongodb').MongoClient;
 var db;
+
+
+function connect_db () {
+  return new Promise((resolve, reject) => {
+    MongoClient.connect(config.mongodb_url, function (err, database) {
+      if (err) reject()
+      db = database;
+      console.log("Connected to database");
+      resolve()
+    })
+  })
+}
+
+function remove_user_img (username) {
+  return new Promise((resolve, reject) => {
+    console.log("remove_user_img");
+    var query = {
+      username: username
+    };
+    db.collection('images').remove(query)
+    .then(()=>{
+      resolve()
+    })
+  })
+}
+
+function insert_img (img) {
+  return new Promise((resolve, reject) => {
+    db.collection('images').insertOne( img, function(err, result) {
+      if (err) reject()
+      resolve()
+    });
+  })
+}
+
+async function loop_media (nodes, username) {
+  var img_arr = []
+  for (let item of nodes) {
+    if(!item.is_video){
+      var img_obj = {}
+      img_obj.id = item.id
+      img_obj.username = username
+      img_obj.created_time = item.date
+      img_obj.likes = item.likes.count
+      img_obj.caption = item.caption
+
+      var img_src = {
+        standard_resolution: {
+          url: item.thumbnail_resources[3].src
+        }
+      }
+
+      img_obj.images = img_src
+      
+      if(item.comments){
+        img_obj.comments = item.comments.data
+      }else{
+        img_obj.comments = []
+      }
+      
+      img_arr.push(img_obj)
+    }
+  }
+  if(img_arr.length > 0){
+    await remove_user_img(username);
+    for(var b = 1; b < img_arr.length; b++){
+      await insert_img(img_arr[b]);
+    }
+    return console.log("Inserted "+username+" into images collection.");
+  }else{
+    return console.log('img_arr empty ' + username);
+  }
+}
+
+async function insert_info (nodes, username) {
+  
+  
+  
+}
+function insert_info (info_obj, query, username) {
+  return new Promise((resolve, reject) => {
+    db.collection('user_info').update( query, info_obj, {upsert:true})
+    .then(()=>{
+      console.log("Inserted "+username+" into info collection.");
+      resolve()
+    });
+  })
+}
+
+async function read_body(body, username) {
+  console.log('start read_body')
+  await loop_media(body.user.media.nodes, username);
+
+  //insert info
+  var info_obj = {};
+  info_obj.username = body.user.username;
+  info_obj.full_name = body.user.full_name;
+  info_obj.biography = body.user.biography;
+  info_obj.followers = body.user.followed_by.count;
+  info_obj.following = body.user.follows.count;
+  info_obj.media = body.user.media.count;
+  info_obj.profile_pic_url = body.user.profile_pic_url;
+  var query = {
+    username: username
+  };
+  await insert_info(info_obj, query, username);
+
+  return console.log('done read_body')
+}
+
+function get_user_list () {
+  console.log('get_user_list')
+  return new Promise((resolve, reject) => {
+    db.collection('user_list').find().limit(2).sort({_id:-1}).toArray(function (err, results) {
+      //db.collection('user_list').find({username: 'jerrylorenzo'}).toArray(function (err, results) {
+      //db.collection('user_list').find().toArray(function (err, results) {
+      if (err) reject()
+      resolve(results)
+    })
+  })
+}
+
+async function retrieve_images() {
+  await connect_db()
+  let user_list = await get_user_list()
+  for(list of user_list){
+    var username = list.username
+    let body = await rp('https://www.instagram.com/'+username+'/?__a=1').then(function (body) { return JSON.parse(body) });
+    if(body){
+      await read_body(body, username);
+    }
+  }
+  return console.log('done retrieve_images')
+}
 
 router.get('/', function(req, res, next) {
   retrieve_images();
@@ -13,144 +148,5 @@ router.get('/', function(req, res, next) {
 });
 
 //setInterval(retrieve_images, 3600*1000);  //1 hour
-
-function retrieve_images(){
-  async.series({
-    connect_db: function(callback) {
-      MongoClient.connect(config.mongodb_url, function (err, database) {
-        if (err) throw err
-        db = database;
-        console.log("Connected to database");
-        callback(null, null);
-      })
-    },
-    get_user_list: function(callback) {
-      console.log('get_user_list');
-      callback(null, null);
-    },
-    get_user_img: function(callback) {
-      db.collection('user_list').find().toArray(function (err, results) {
-        if (err) throw err
-        
-        results.forEach((result)=>{
-          var username = result.username
-          
-          async.series({
-            get_images: function(callback) {
-              //get images
-              request('https://www.instagram.com/'+username+'/media/', function (err, response, body) {
-                if (err) throw err
-                if(response.statusCode === 200){
-                  var img_arr = []
-                  body = JSON.parse(body)
-                  body.items.forEach(function (item) {
-                    if(item.type === "image"){
-                      var img_obj = {}
-                      img_obj.id = item.id
-                      img_obj.username = username
-                      img_obj.created_time = item.created_time
-                      img_obj.likes = item.likes.count
-                      img_obj.caption = item.caption
-                      img_obj.images = item.images
-                      
-                      if(item.comments){
-                        img_obj.comments = item.comments.data
-                      }else{
-                        img_obj.comments = []
-                      }
-                      
-                      img_arr.push(img_obj)
-                    }
-                  })
-                  if(img_arr.length > 0){
-                    var query = {
-                      username: username
-                    };
-                    db.collection('images').remove(query)
-                    .then(()=>{
-                      img_arr.forEach(function (img) {
-                        db.collection('images').insertOne( img, function(err, result) {
-                          if (err) throw err
-                        });
-                      })
-                    })
-                    .then(()=>{
-                      console.log("Inserted "+username+" into images collection.");
-                      callback(null, null);
-                    })
-                    .catch((err)=>{
-                      if (err) throw err
-                    })
-                  }
-                }else{
-                  console.log('statusCode:', response && response.statusCode);
-                  callback(null, null);
-                }
-              });
-            },
-            get_info: function(callback) {
-              //get info
-              request('https://www.instagram.com/'+username+'/?__a=1', function (err, response, body) {
-                if (err) throw err
-                if(response.statusCode === 200){
-                  body = JSON.parse(body)
-                  var info_obj = {};
-                  info_obj.username = body.user.username;
-                  info_obj.full_name = body.user.full_name;
-                  info_obj.biography = body.user.biography;
-                  info_obj.followers = body.user.followed_by.count;
-                  info_obj.following = body.user.follows.count;
-                  info_obj.media = body.user.media.count;
-                  info_obj.profile_pic_url = body.user.profile_pic_url;
-                  
-                  var query = {
-                    username: username
-                  };
-                  
-                  db.collection('user_info').update( query, info_obj, {upsert:true})
-                  .then(()=>{
-                    console.log("Inserted "+username+" into info collection.");
-                    callback(null, null);
-                  });
-                  
-                }else{
-                  console.log('statusCode:', response && response.statusCode);
-                  callback(null, null);
-                }
-              });
-            },
-            function(err, results) {
-              if (err) throw err
-              callback(null, null);
-            }
-          })
-        })
-      })
-    }
-  }, function(err, results) {
-    if (err) throw err
-    //console.log(results.get_user_list)
-    db.collection('images').find().toArray(function (err, result) {
-      if (err) throw err
-      console.log(result.length)
-    })
-    /*
-    db.collection('user_list').findAndModify(
-      {username: 'alkarus'}, // query
-      [['_id','asc']],  // sort order
-      {$set: {category: 'global'}}, // replacement, replaces only the field
-      {}, // options
-      function(err, object) {
-        if (err){
-          console.warn(err.message);  // returns error if no matching object found
-        }else{
-          console.log(object)
-        }
-      }
-    );
-    */
-    return true;
-  });
-}
 
 module.exports = router;
