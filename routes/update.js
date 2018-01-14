@@ -98,7 +98,9 @@ function insert_info (info_obj, query, username) {
 
 async function read_body(body, username) {
   console.log('start read_body')
-  await loop_media(body.user.media.nodes, username);
+  if(body.user.media.nodes){
+    await loop_media(body.user.media.nodes, username);
+  }
 
   //insert info
   var info_obj = {};
@@ -120,9 +122,9 @@ async function read_body(body, username) {
 function get_user_list () {
   console.log('get_user_list')
   return new Promise((resolve, reject) => {
-    db.collection('user_list').find().limit(2).sort({_id:-1}).toArray(function (err, results) {
-      //db.collection('user_list').find({username: 'jerrylorenzo'}).toArray(function (err, results) {
-      //db.collection('user_list').find().toArray(function (err, results) {
+    //db.collection('user_list').find().limit(2).sort({_id:-1}).toArray(function (err, results) {
+    //db.collection('user_list').find({username: 'rated_apparel'}).toArray(function (err, results) {
+    db.collection('user_list').find().toArray(function (err, results) {
       if (err) reject()
       resolve(results)
     })
@@ -133,14 +135,29 @@ async function retrieve_images() {
   await connect_db()
   let user_list = await get_user_list()
   for(list of user_list){
+    console.log('user_list '+ list.username)
     var username = list.username
-    let body = await rp('https://www.instagram.com/'+username+'/?__a=1').then(function (body) { return JSON.parse(body) });
+    var options = {
+      uri: 'https://www.instagram.com/'+username+'/?__a=1',
+      resolveWithFullResponse: true
+    };
+    let body = await rp(options).then(function (response) {
+      if(response && response.statusCode === 200){
+        return JSON.parse(response.body);
+      }else{
+        return null;
+      }
+    }).catch(function (err) {
+      return null;
+    });
     if(body){
       await read_body(body, username);
     }
   }
   return console.log('done retrieve_images')
 }
+
+retrieve_images()
 
 router.get('/', function(req, res, next) {
   retrieve_images();
