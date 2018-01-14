@@ -66,13 +66,14 @@ async function loop_media (nodes, username) {
       }
 
       img_obj.images = img_src
-      
+      img_obj.comments = []
+      /*
       if(item.comments){
         img_obj.comments = item.comments.data
       }else{
         img_obj.comments = []
       }
-      
+      */
       img_arr.push(img_obj)
     }
   }
@@ -87,11 +88,6 @@ async function loop_media (nodes, username) {
   }
 }
 
-async function insert_info (nodes, username) {
-  
-  
-  
-}
 function insert_info (info_obj, query, username) {
   return new Promise((resolve, reject) => {
     db.collection('user_info').update( query, info_obj, {upsert:true})
