@@ -1,122 +1,129 @@
-var express = require('express');
+var express = require("express");
 var router = express.Router();
-const async = require('async')
-var request = require('request');
+const async = require("async");
+var request = require("request");
+var moment = require("moment");
 
-var config = require('../config.js');
-var MongoClient = require('mongodb').MongoClient;
+var config = require("../config.js");
+var MongoClient = require("mongodb").MongoClient;
 var db_url = config.mongodb_url;
 var db;
 var limit = 6;
 
-var url = require('url');
+var url = require("url");
 
-router.get('/users', function(req, res, next) {
-  MongoClient.connect(db_url, function (err, database) {
-    if (err) throw err
-    db = database;
-    console.log("Connected to database");
-    
-    db.collection('user_list').find().toArray(function (err, result) {
-      if (err) throw err
-      res.send(JSON.stringify(result));
-    })
-  })
+//test
+MongoClient.connect(config.mongodb_url, function(err, database) {
+  if (err) throw err;
+  db = database;
+  console.log("Connected to database");
 });
 
-router.get('/images', function(req, res, next) {
-    var query = url.parse(req.url,true).query;
-    var currentPage = query.page;
-    var skip = currentPage * limit;
-    console.log(skip, limit);
-    
-  MongoClient.connect(db_url, function (err, database) {
-    if (err) throw err
-    db = database;
-    console.log("Connected to database");
-    
-    async.waterfall([
-        function(callback) {
-            var filter = {}
-            //if category exist
-            if(query.cat){
-              var cat = query.cat;
-              var arr_users = []
-              //get user in category
-              db.collection('user_list').find({category: cat}).toArray(function (err, results) {
-                if (err) throw err
-                results.forEach((result)=>{
-                  arr_users.push(result.username)
-                })
-                filter = {username: { '$in': arr_users }}
-                callback(null, filter);
-              })
-            }else{
-                callback(null, filter);
-            }
-        },
-        function(arg1, callback) {
-            var filter = arg1
-            console.log(filter)
-            db.collection('images').find(filter).skip(skip).limit(limit).sort({created_time: -1}).toArray(function (err, result) {
-              if (err) throw err
-              res.send(JSON.stringify(result));
-            })
-            callback(null, null);
-        }
-    ], function (err, result) {
-        if (err) throw err
+function connect_db() {
+  return;
+  return new Promise((resolve, reject) => {
+    MongoClient.connect(db_url, function(err, database) {
+      if (err) reject();
+      db = database;
+      console.log("Connected to database");
+      resolve();
     });
-  })
+  });
+}
+
+async function check_id(id) {
+  console.log(id);
+  return await db
+    .collection("lists")
+    .find({ item_id: id })
+    .toArray();
+}
+
+async function insert_item(req) {
+  await connect_db();
+  var checking = await check_id(req.body.form.item_id);
+  if (checking.length != 0) {
+    return false;
+  }
+
+  /*
+  var obj = {
+    item_id: req.body.form.item_id,
+    img_link: req.body.form.img_link,
+    shop_name: req.body.form.shop_name,
+    tag: req.body.form.tag,
+    click_link: req.body.form.click_link,
+    img_valid: true,
+    created_time: moment().unix()
+  };
+  */
+
+  var obj = req.body.form;
+  obj.img_valid = true;
+  obj.created_time = moment().unix();
+
+  db.collection("lists").insertOne(obj, function(err, result) {
+    if (err) reject();
+    console.log("done insert_item");
+    return true;
+  });
+}
+
+async function get_lists() {
+  await connect_db();
+  return await db
+    .collection("lists")
+    .find()
+    .sort({ created_time: -1 })
+    .toArray();
+}
+
+async function delete_item(req) {
+  await connect_db();
+  await db.collection("lists").remove({ item_id: req.body.item_id });
+  console.log("done delete_item");
+  return true;
+}
+
+async function update_item(req) {
+  var obj = req.body.form;
+  obj.img_valid = true;
+  delete obj._id;
+
+  var query = { item_id: req.body.form.item_id };
+
+  await connect_db();
+  await db.collection("lists").update(query, obj, { upsert: true });
+  return true;
+}
+
+router.get("/lists", async (req, res) => {
+  var arr = [];
+  arr = await get_lists();
+
+  console.log("done find");
+
+  res.send(JSON.stringify(arr));
 });
 
-router.get('/user/images', function(req, res, next) {
-    var query = url.parse(req.url,true).query;
-    var currentPage = query.page;
-    var skip = currentPage * limit;
-    console.log(skip, limit);
-    
-    var username = '';
-    if(query.username){
-        username = query.username;
-    }
-    
-  MongoClient.connect(db_url, function (err, database) {
-    if (err) throw err
-    db = database;
-    console.log("Connected to database");
-    
-    db.collection('images').find({username: username}).skip(skip).limit(limit).sort({created_time: -1}).toArray(function (err, result) {
-      if (err) throw err
-      res.send(JSON.stringify(result));
-    })
-  })
+router.post("/item", async (req, res) => {
+  if ((await insert_item(req)) == false) {
+    res.send({ status: false });
+  } else {
+    res.send({ status: true });
+  }
 });
 
-router.get('/images/:id', function(req, res, next) {
-  MongoClient.connect(db_url, function (err, database) {
-    if (err) throw err
-    db = database;
-    console.log("Connected to database");
-    
-    db.collection('images').find({id: req.params.id}).toArray(function (err, result) {
-      if (err) throw err
-      res.send(JSON.stringify(result));
-    })
-  })
+router.post("/item_delete", async (req, res) => {
+  console.log("item_delete");
+  await delete_item(req);
+  res.send({ status: true });
 });
 
-router.get('/user_info/:username', function(req, res, next) {
-  MongoClient.connect(db_url, function (err, database) {
-    if (err) throw err
-    db = database;
-    console.log("Connected to database");
-    
-    db.collection('user_info').find({username: req.params.username}).toArray(function (err, result) {
-      if (err) throw err
-      res.send(JSON.stringify(result[0]));
-    })
-  })
+router.post("/item_update", async (req, res) => {
+  console.log("item_update");
+  await update_item(req);
+  res.send({ status: true });
 });
 
 module.exports = router;

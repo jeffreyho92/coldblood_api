@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "node ./bin/www"
+    "start": "nodemon ./bin/www"
   },
   "dependencies": {
     "async": "^2.3.0",
@@ -13,6 +13,7 @@
     "debug": "~2.6.3",
     "express": "~4.15.2",
     "jade": "~1.11.0",
+    "moment": "^2.22.1",
     "mongodb": "^2.2.25",
     "morgan": "~1.8.1",
     "request": "^2.81.0",
@@ -21,5 +22,8 @@
   },
   "engines": {
     "node": "4.1.2"
+  },
+  "devDependencies": {
+    "nodemon": "^1.17.3"
   }
 }
