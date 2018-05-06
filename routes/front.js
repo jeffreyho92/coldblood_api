@@ -7,7 +7,7 @@ var config = require("../config.js");
 var MongoClient = require("mongodb").MongoClient;
 var db_url = config.mongodb_url;
 var db;
-var limit = 3;
+var limit = 6;
 
 var url = require("url");
 
