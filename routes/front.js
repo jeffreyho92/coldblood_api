@@ -2,6 +2,7 @@ var express = require("express");
 var router = express.Router();
 const async = require("async");
 var request = require("request");
+var moment = require("moment");
 
 var config = require("../config.js");
 var MongoClient = require("mongodb").MongoClient;
@@ -91,9 +92,46 @@ async function get_lists(req) {
   return results;
 }
 
+async function click_logs(req) {
+  await connect_db();
+
+  var client_ip =
+    req.headers["x-forwarded-for"] ||
+    req.connection.remoteAddress ||
+    req.socket.remoteAddress ||
+    (req.connection.socket ? req.connection.socket.remoteAddress : null);
+
+  /*
+  1 = btnHowToBuy
+  2 = discover Hype
+  3 = discover Sport
+  4 = discover Techwear
+  5 = discover Local
+  6 = discover Minimalist
+  7 = discover Korean
+  8 = discover Accessories
+  */
+  var obj = {
+    id: req.body.id,
+    created_time: moment().unix(),
+    client_ip: client_ip
+  };
+
+  db.collection("click_logs").insertOne(obj, function(err, result) {
+    if (err) reject();
+    console.log("done insert_click_logs");
+    return true;
+  });
+}
+
 router.get("/lists", async (req, res) => {
   var results = await get_lists(req);
   res.send(JSON.stringify(results));
+});
+
+router.post("/click_logs", async (req, res) => {
+  click_logs(req);
+  res.send("");
 });
 
 module.exports = router;
