@@ -59,7 +59,7 @@ async function retrieve_list(skip, limit, cat) {
     .find({ img_valid: true, tag: { $regex: ".*" + cat + ".*" } })
     .skip(skip)
     .limit(limit)
-    .sort({ created_time: -1 })
+    .sort({ promote: -1, created_time: -1 })
     .toArray();
 }
 
@@ -75,6 +75,31 @@ async function get_lists(req) {
     cat = query.cat;
   }
 
+  /*
+  //wait all img checking and retrun all OK
+  var err_count = 10;
+  while (err_count > 0) {
+    err_count = 0;
+    var results = await retrieve_list(skip, limit, cat);
+    for (let i = 0; i < results.length; i++) {
+      var data = results[i];
+      var test = await testUrl(data.img_link);
+      console.log(test);
+      if (test == 403) {
+        err_count++;
+        await updateImgValid(data);
+      }
+    }
+
+    console.log("err_count" + err_count);
+    if (err_count == 0) {
+      console.log("results done2");
+      return results;
+    }
+  }
+  */
+
+  //return all img first, afterthat do checking and updateImgValid
   var err_count = 10;
   while (err_count > 0) {
     err_count = 0;
@@ -103,13 +128,14 @@ async function click_logs(req) {
 
   /*
   1 = btnHowToBuy
-  2 = discover Hype
-  3 = discover Sport
-  4 = discover Techwear
-  5 = discover Local
-  6 = discover Minimalist
-  7 = discover Korean
-  8 = discover Accessories
+  2 = Discover
+  3 = discover Hype
+  4 = discover Sport
+  5 = discover Techwear
+  6 = discover Local
+  7 = discover Minimalist
+  8 = discover Korean
+  9 = discover Accessories
   */
   var obj = {
     id: req.body.id,

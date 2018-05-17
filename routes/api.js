@@ -74,7 +74,7 @@ async function get_lists() {
   return await db
     .collection("lists")
     .find()
-    .sort({ created_time: -1 })
+    .sort({ promote: -1, created_time: -1 })
     .toArray();
 }
 
