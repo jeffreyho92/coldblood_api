@@ -57,7 +57,7 @@ async function retrieve_list(skip, limit, cat) {
   if (cat == "") {
     return await db
       .collection("lists")
-      .find({ img_valid: true, tag: { $regex: "^((?!local).)*$" } })
+      .find({ img_valid: true, tag: { $regex: "^((?!local|accessories).)*$" } })
       .skip(skip)
       .limit(limit)
       .sort({ promote: -1, created_time: -1 })
