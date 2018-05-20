@@ -56,7 +56,7 @@ async function updateImgValid(item) {
 async function retrieve_list(skip, limit, cat) {
   return await db
     .collection("lists")
-    .find({ img_valid: true, tag: { $regex: ".*" + cat + ".*" } })
+    .find({ img_valid: true, tag: { $regex: ".*" + cat + ".*", $regex: "^((?!local).)*$" } })
     .skip(skip)
     .limit(limit)
     .sort({ promote: -1, created_time: -1 })
