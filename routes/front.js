@@ -54,13 +54,23 @@ async function updateImgValid(item) {
 }
 
 async function retrieve_list(skip, limit, cat) {
-  return await db
-    .collection("lists")
-    .find({ img_valid: true, tag: { $regex: ".*" + cat + ".*", $regex: "^((?!local).)*$" } })
-    .skip(skip)
-    .limit(limit)
-    .sort({ promote: -1, created_time: -1 })
-    .toArray();
+  if (cat == "") {
+    return await db
+      .collection("lists")
+      .find({ img_valid: true, tag: { $regex: "^((?!local).)*$" } })
+      .skip(skip)
+      .limit(limit)
+      .sort({ promote: -1, created_time: -1 })
+      .toArray();
+  } else {
+    return await db
+      .collection("lists")
+      .find({ img_valid: true, tag: { $regex: ".*" + cat + ".*" } })
+      .skip(skip)
+      .limit(limit)
+      .sort({ created_time: -1 })
+      .toArray();
+  }
 }
 
 async function get_lists(req) {
