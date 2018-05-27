@@ -124,7 +124,52 @@ async function get_lists(req) {
     });
   }
 
+  //keep logs
+  browse_logs(req, cat, currentPage);
+
   return results;
+}
+
+async function check_ip_browsed(client_ip, cat, currentPage) {
+  var start = moment()
+    .startOf("day")
+    .unix();
+  var end = moment()
+    .endOf("day")
+    .unix();
+  console.log(start, end);
+  return await db
+    .collection("browse_logs")
+    .find({ client_ip: client_ip, cat: cat, created_time: { $gte: start, $lt: end }, currentPage: { $gte: currentPage } })
+    .toArray();
+}
+
+async function browse_logs(req, cat, currentPage) {
+  await connect_db();
+  var client_ip =
+    req.headers["x-forwarded-for"] ||
+    req.connection.remoteAddress ||
+    req.socket.remoteAddress ||
+    (req.connection.socket ? req.connection.socket.remoteAddress : null);
+
+  var checking = await check_ip_browsed(client_ip, cat, currentPage);
+  console.log(checking);
+  if (checking.length != 0) {
+    return false;
+  }
+
+  var obj = {
+    client_ip: client_ip,
+    created_time: moment().unix(),
+    cat: cat,
+    currentPage: currentPage
+  };
+
+  var query = { client_ip: client_ip, cat: cat };
+
+  await connect_db();
+  await db.collection("browse_logs").update(query, obj, { upsert: true });
+  return true;
 }
 
 async function click_logs(req) {
