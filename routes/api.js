@@ -97,6 +97,97 @@ async function update_item(req) {
   return true;
 }
 
+async function get_browse_logs() {
+  await connect_db();
+  /*
+  return await db
+    .collection("browse_logs")
+    .find({
+		    "created_time": 
+		    {
+		        $gte: moment().add(-30, 'days').unix()
+		    }
+		})
+    .sort({ created_time: -1 })
+    .toArray();
+  */
+  return await db
+    .collection("browse_logs")
+    .aggregate([
+      { $match:
+        { 'created_time': {$gte: moment().add(-30, 'days').unix()} }
+      },
+      { $group: 
+        { _id: {
+          year : { 
+            "$year": {
+                "$add": [
+                    new Date(0),
+                    { "$multiply": [1000, "$created_time"] }
+                ]
+            }
+          },
+          month : { 
+            "$month": {
+                "$add": [
+                    new Date(0),
+                    { "$multiply": [1000, "$created_time"] }
+                ]
+            }
+          },
+          day : { 
+            "$dayOfMonth": {
+                "$add": [
+                    new Date(0),
+                    { "$multiply": [1000, "$created_time"] }
+                ]
+            }
+          }
+        }, group_count: { $sum: 1 } } 
+      }])
+    .toArray();
+
+    
+}
+
+async function get_click_logs() {
+  await connect_db();
+  return await db
+    .collection("click_logs")
+    .find({
+		    "created_time": 
+		    {
+		        $gte: moment().add(-30, 'days').unix()
+		    }
+		})
+    .sort({ created_time: -1 })
+    .toArray();
+}
+
+async function count_browse_logs() {
+  await connect_db();
+  return await db
+    .collection("browse_logs")
+    .aggregate([
+		 { $group: 
+		    { _id: {cat : '$cat',currentPage:'$currentPage'}, group_count: { $sum: 1 } } 
+		 }])
+    .toArray();
+}
+
+async function count_click_logs() {
+  await connect_db();
+  return await db
+    .collection("click_logs")
+    .aggregate([
+		 { $group: 
+		    { _id: '$id', group_count: { $sum: 1 } } 
+		 }])
+    .toArray();
+}
+
+
+
 router.get("/lists", async (req, res) => {
   var arr = [];
   arr = await get_lists();
@@ -124,6 +215,30 @@ router.post("/item_update", async (req, res) => {
   console.log("item_update");
   await update_item(req);
   res.send({ status: true });
+});
+
+router.get("/browse_logs", async (req, res) => {
+  var arr = [];
+  arr = await get_browse_logs();
+  res.send(JSON.stringify(arr));
+});
+
+router.get("/click_logs", async (req, res) => {
+  var arr = [];
+  arr = await get_click_logs();
+  res.send(JSON.stringify(arr));
+});
+
+router.get("/count_browse_logs", async (req, res) => {
+  var arr = [];
+  arr = await count_browse_logs();
+  res.send(JSON.stringify(arr));
+});
+
+router.get("/count_click_logs", async (req, res) => {
+  var arr = [];
+  arr = await count_click_logs();
+  res.send(JSON.stringify(arr));
 });
 
 module.exports = router;
